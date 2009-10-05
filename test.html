@@ -1,12 +1,18 @@
 <html>
   <head>
-    <script src='/js/jquery.min.js'></script>
-    <script src='js/wterm.jquery.js'></script>
-    <link rel="stylesheet" href="/css/wterm.css" type="text/css" />
+    <script src='js/jquery.min.js'></script>
+    <script src='../wterm.jquery.js'></script>
+    <link rel="stylesheet" href="./css/wterm.css" type="text/css" />
 
     <style>
       body { background: #000; font-size: 1.3em;  }
     </style>
+
+    <script>
+      String.prototype.reverse = function() {
+        return this.split('').reverse().join('');
+      };
+    </script>
 
 
     <script>
@@ -43,6 +49,22 @@
         'go': function( tokens ) {
            var url = tokens[1];
            document.location.href = url;
+         },
+ 
+         'strrev': {
+           PS1: 'strrev $',
+ 
+           EXIT_HOOK: function() {
+             return 'exit interface commands';
+           },
+
+           START_HOOK: function() {
+             return 'exit interface commands';
+           },
+ 
+           DISPATCH: function( tokens ) {
+             return tokens.join('').reverse();
+           }
          }
       };
 
@@ -55,7 +77,8 @@
           'eval - Usage eval &lt;any javascript exression&gt;<br>' +
           'date - Returns Current Date<br>' + 
           'cap  - Usage cap &lt;string&gt; - Turns the string to upcase<br>' +
-          'go - Usage go &lt;url&gt; - Sets the browser location to URL<br>' 
+          'go - Usage go &lt;url&gt; - Sets the browser location to URL<br>' +
+          'strrev - A Sub-Terminal, Takes any input reverses the string and spits it out'
 
       });
 

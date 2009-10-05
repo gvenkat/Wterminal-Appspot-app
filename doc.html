@@ -2,7 +2,9 @@
   <head>
     <title> WTerminal - Terminal Emulation on the Browser </title>
     <style>
+    /* nothin here */
     </style>
+     
   </head>
   <body>
     <h1> WTerm </h1>
@@ -43,6 +45,25 @@
     </pre>
 
     <p>
+      You Can Try this your self. Please go to the demo page <a href='/demo'> here </a> and type this in
+      <pre>
+        $ eval $.register_command( 'microsoft', fuction( tokens ) { return 'is so evil'; } 
+      </pre> 
+
+      Now hit the TAB you should see the command in the available commands. Now just type this into the terminal.
+      <pre>
+        $ mircosoft
+      </pre>
+
+        What do you see? Wasn't that simple?
+
+
+    </p>
+   
+
+
+
+    <p>
       tokens are passed to your function, its an array of the entire command
       broken into tokens. Tokens are assumed to be seperated by whitespace. The token seperator
       is not configurable. For Example:
@@ -74,6 +95,40 @@
     $.register_command( 'command_from_server', '/i/me/mine.php' );
     $.register_command( 'command_from_server', 'http://www.yourdomain.com/i/me/mine.php' );
   </pre>
+
+
+  <p> There's another powerful way to dispatch commands, If you want many commands to interpreted by the same handler, In this case you should return an object this way </p>
+
+  <pre>
+    $.register_command( 'some_command', { 
+      START_HOOK : 'call/me/here.php',
+      EXIT_HOOK  : 'call/me/there.php',
+      DISPATCH   : function() { return 'nevermind'; },
+      PS1        : 'my_new_prompt $'
+    } );
+  </pre>
+
+  <p>
+    START_HOOK is a hook that's called where user first types in:
+  </p>
+
+  <pre>
+    $ some_command
+  </pre>
+
+  <p>
+    EXIT_HOOK is called when user types exit to get out of sub-terminal. PS1 may be your custom prompt, Default prompt for this type of dispatch is the command name itself. This works similar to python / ruby interactive interpreter.
+  </p>
+
+  <p>
+    START_HOOK, EXIT_HOOK and PS1 are optional. DISPATCH is called with the tokens, note that the first element in the array will *NOT* be 'some_command'. Also, START_HOOK, EXIT_HOOK, and DISPATCH may either be function or string and dispatch will work as described previously. *DO NOT* try to return another object, this works only for single level ( this will be fixed in the subsequent releases ).
+  </p>
+
+  <p>
+    Credits to Tim Robinson for suggestion this type of dispatch. Please have a look at the way 'strrev' command is implemented in the demo.
+  </p>
+
+ 
 
 
 

@@ -161,8 +161,16 @@
       var input_form = element.find( 'div:last form' );
       var input      = element.find( 'div:last form input' );
       var content    = element.find( '.' + settings.CONTENT_CLASS );
-      
 
+      // Custom Dispatcher
+      var cdispatch  = null;
+
+      // Temprary storage for autocomplete configuration
+      var ac_save    = null;
+
+      // Temporary store for current prompt
+      var cprompt    = null;
+      
       // Curson always needs to be on the prompt
       input.focus();
       element.click( function() { input.focus(); } );
@@ -206,7 +214,23 @@
       var clear_content = function() {
         content.html( '' );
       };
+
+      // Add the command to the dispatch
       dispatch.clear = clear_content;
+
+
+
+      /**
+      * @method   : set_prompt 
+      * @private  :
+      * @desc     : Set the current prompt
+      * @args     : string 
+      **/
+      set_prompt = function( p ) {
+        if( p && p.length ) element.find( '.' + settings.PROMPT_CLASS).html( p + '&nbsp;' );
+      };
+
+ 
 
       /**
       *
@@ -229,39 +253,83 @@
         // Reset The Input
         input.attr( 'value', '' );
         var tokens = value.split( /\s+/ );
+        var key    = tokens[0];
+        
+        hide(); 
 
-        if( dispatch[ tokens[0] ] ) {
-          hide();
-          try {
-            var key = tokens[0];
-            if( typeof dispatch[ key ] === 'function' ) {
-              data = dispatch[ tokens[0] ]( tokens );
-              if( data ) { update_content( settings.PS1, value, data ) }
-            } else if( typeof dispatch[ key ] === 'string' ) {
-
-              var to_send = { };
-              to_send[ settings.AJAX_PARAM ] = tokens.join( ' ' );
-
-              var on_complete = function( data, text_status ) {
-                update_content( settings.PS1, value, data )
-              };
-           
-              $[ settings.AJAX_METHOD.toLowerCase() ]( dispatch[ key ], to_send, on_complete );
-
-            }
-          } catch( e ) {
-            update_content( settings.PS1, value, settings.ERROR_PREFIX + e.message );
-          }
-          show();
-        } else if( tokens[0] == '' ){
-          hide(); 
-          update_content( settings.PS1, '' );
-          show();
-        } else {
-          hide();
-          update_content( settings.PS1, value, settings.NOT_FOUND.replace( 'CMD', tokens[0] ));
-          show();
+        var get_current_prompt = function() {
+          return ( cprompt ) ? cprompt : settings.PS1;
         }
+
+        var _dispatch = function( key, tokens ) {
+
+          if( typeof key === 'function' ) {
+              data = key( tokens );
+              if( data ) { update_content( get_current_prompt(), value, data ) }
+          } else if( typeof key === 'string' ) {
+            var to_send = { };
+            to_send[ settings.AJAX_PARAM ] = tokens.join( ' ' );
+
+            var on_complete = function( data, text_status ) {
+              update_content( get_current_prompt(), value, data )
+            };
+           
+            $[ settings.AJAX_METHOD.toLowerCase() ]( dispatch[ key ], to_send, on_complete );
+          }
+        };
+
+        if( key == '' ) {
+          update_content( get_current_prompt() , '' )
+        } else if( cdispatch && key == 'exit' ) {
+           
+           // Recover old configuration and Dispatch exit hook
+           settings.AUTOCOMPLETE = ( ac_save ) ? ac_save : false ;
+
+           // Todo: test what happens when exit hook is not defined
+           if( cdispatch.EXIT_HOOK ) {
+             _dispatch( cdispatch.EXIT_HOOK, tokens );
+           } else {
+             _dispatch( function() { return '<b></b>' }, tokens );
+           }
+       
+          // Clear temporary values
+          cdispatch = null;  
+          cprompt   = null;
+
+          // Reset the prompt
+          set_prompt( settings.PS1 );
+
+        } else if( cdispatch ) {
+
+          // Dispatch to the custom dispatcher
+          _dispatch( cdispatch.DISPATCH, tokens ); 
+
+        } else if( dispatch[ key ] ) {
+          if( typeof dispatch[ key ] === 'object' ) {
+            cdispatch = dispatch[ key ];
+            cprompt   = cdispatch.PS1 || key;
+            set_prompt( cprompt );
+
+            ac_save = settings.AUTOCOMPLETE;
+            settings.AUTOCOMPLETE = false;
+
+            // Todo:See what happens if start hook is not defined
+            if( cdispatch.START_HOOK ) {
+              _dispatch( cdispatch.START_HOOK, tokens );
+            } else {
+              // A stupid Hack
+              _dispatch( function() { return '<b></b>' }, tokens );
+            }
+          } else {
+            _dispatch( dispatch[ key ], tokens );
+          } 
+        } else {
+          update_content( settings.PS1, value, settings.NOT_FOUND.replace( 'CMD', tokens[0] ));
+        }
+
+        show();
+
+
       } );
 
 
@@ -333,7 +401,7 @@
 
   $.register_command = function( command, dispatch_method ) {
     try {
-      if( typeof dispatch_method === 'function' || typeof dispatch_method === 'string' ) {
+      if( typeof dispatch_method === 'function' || typeof dispatch_method === 'string' || typeof dispatch_method === 'object' ) {
         dispatch[ command ] = dispatch_method;
       } else {
         throw 'Dispatch needs to be a method';
