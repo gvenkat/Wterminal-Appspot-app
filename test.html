@@ -55,11 +55,11 @@
            PS1: 'strrev $',
  
            EXIT_HOOK: function() {
-             return 'start hook dispatch';
+             return 'exit hook dispatch';
            },
 
            START_HOOK: function() {
-             return 'exit hook dispatch';
+             return 'start hook dispatch';
            },
  
            DISPATCH: function( tokens ) {
